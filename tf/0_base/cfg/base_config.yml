@@ -1,0 +1,14 @@
+location: eastus
+
+core-rg:
+  name: hpcbuilder-core-rg
+
+flex-rg:
+  name: hpcbuilder-flex-rg
+
+keyvault:
+  name: hpcbuilder-kv
+
+admin:
+  username: hpcadmin
+

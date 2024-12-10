@@ -1,0 +1,21 @@
+#!/bin/bash
+if ! grep -q cycle_server /etc/fstab; then 
+    parted /dev/disk/azure/scsi1/lun0 --script -- mklabel gpt
+    parted -a optimal /dev/disk/azure/scsi1/lun0 mkpart primary 0% 100%
+    sleep 10s
+    mkfs -t xfs /dev/disk/azure/scsi1/lun0-part1
+    mkdir -p /opt/cycle_server
+    disk_uuid=$(/usr/sbin/blkid -o value -s UUID  /dev/disk/azure/scsi1/lun0-part1)
+    /usr/bin/echo "UUID=$disk_uuid /opt/cycle_server xfs defaults,nofail 1 2" >> /etc/fstab
+    /usr/bin/mount /opt/cycle_server
+fi
+
+apt update && sudo apt -y install wget gnupg2
+wget -qO - https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+
+sudo echo 'deb https://packages.microsoft.com/repos/cyclecloud stable main' > /etc/apt/sources.list.d/cyclecloud.list
+sudo apt update
+sudo apt -y --allow-downgrades install cyclecloud8=${cycle_version}
+
+
+  
