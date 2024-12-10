@@ -1,0 +1,17 @@
+cyclecloud:
+  name_prefix: cycle
+  vm_size: Standard_D4as_v4
+  version: 8.6.5
+  image:
+    type: marketplace # or custom
+    publisher: almalinux
+    offer: almalinux-x86_64
+    sku: 8_7-gen2
+    version: latest
+    os_type: alma
+    #publisher: Canonical
+    #offer: 0001-com-ubuntu-server-jammy
+    #sku: 22_04-lts-gen2
+    #version: latest
+    #os_type: ubuntu
+    #id:   
