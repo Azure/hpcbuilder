@@ -6,7 +6,12 @@ core-rg:
 flex-rg:
   name: hpcbuilder-flex-rg
 
+# If an existing keyvault is going to be used for storing secrets, 
+# set create to 0, uncomment the rg line to specify the resource group, 
+# and set the name to the keyvault's name.
 keyvault:
+  create: 1
+  #rg: existing-kv-rg
   name: hpcbuilder-kv
 
 admin:

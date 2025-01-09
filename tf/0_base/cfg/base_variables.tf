@@ -9,6 +9,8 @@ locals {
   flex_rg_name=local.config_yml["flex-rg"]["name"]
 
   kv_name=local.config_yml["keyvault"]["name"]
+  create_kv = local.config_yml["keyvault"]["create"] == 1 ? true : false
+  kv_rg = local.create_kv ? local.core_rg_name : local.config_yml["keyvault"]["rg"]
 
   admin_username=local.config_yml["admin"]["username"]
 }

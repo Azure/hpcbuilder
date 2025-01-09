@@ -40,7 +40,7 @@ data "azurerm_resource_group" "core_rg" {
 
 data "azurerm_key_vault" "kv" {
   name                = module.global.kv_name
-  resource_group_name = module.global.core_rg_name
+  resource_group_name = module.global.kv_rg
 }
 
 data "azurerm_key_vault_secret" "ssh_key" {
