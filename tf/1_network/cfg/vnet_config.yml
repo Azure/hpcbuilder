@@ -1,6 +1,6 @@
 vnet:
   address_space: 10.2.0.0/16
-  create: 0
+  create: 1
   rg: hpcbuilder-core-rg
   name: hpc-vnet
   subnets:

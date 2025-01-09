@@ -34,6 +34,7 @@ resource "azurerm_resource_group" "flex_rg" {
 }
 
 resource "azurerm_key_vault" "kv" {
+  count = module.global.create_kv ? 1 : 0
   name                = module.global.kv_name
   location            = resource.azurerm_resource_group.core_rg.location
   resource_group_name = resource.azurerm_resource_group.core_rg.name
@@ -66,8 +67,8 @@ resource "azurerm_key_vault" "kv" {
 module "keys" {
   source = "../modules/auth/ssh-key"
   name_prefix = module.global.admin_username
-  keyvault_name = resource.azurerm_key_vault.kv.name
-  keyvault_resource_group_name = resource.azurerm_resource_group.core_rg.name
+  keyvault_name = module.global.kv_name
+  keyvault_resource_group_name = module.global.kv_rg
   depends_on = [ resource.azurerm_key_vault.kv ]
   
 }
@@ -75,9 +76,8 @@ module "keys" {
 module "password" {
   source = "../modules/auth/password"
   name_prefix = module.global.admin_username
-  keyvault_name = resource.azurerm_key_vault.kv.name
-  keyvault_resource_group_name = resource.azurerm_resource_group.core_rg.name
+  keyvault_name = module.global.kv_name
+  keyvault_resource_group_name = module.global.kv_rg
   depends_on = [ resource.azurerm_key_vault.kv ]
-  
 }
 
