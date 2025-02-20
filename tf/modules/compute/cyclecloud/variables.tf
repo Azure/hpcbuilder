@@ -33,10 +33,10 @@ variable "operating_system" {
 variable "cc_version" {
   description = "cyclecloud version to install on the vm"
   type = string
-  default = "8.6.5-3340"
+  default = "8.7.1-3364"
   validation {
-    condition     = contains(["8.6.5-3340", "8.6.4-3320", "8.6.3-3293", "8.6.2-3276", "8.6.1-3248", "8.6.0-3223"], var.cc_version)
-    error_message = "Valid values for var: occ_version are: 8.6.5-3340, 8.6.4-3320, 8.6.3-3293, 8.6.2-3276, 8.6.1-3248, 8.6.0-3223."
+    condition     = contains(["8.7.1-3364"], var.cc_version)
+    error_message = "Valid values for var: occ_version are: 8.7.1-3364"
   }
 }
 
@@ -61,6 +61,7 @@ variable "admin" {
         type = object({
         username = optional(string, "hpcadmin")
         public_key  = string
+        password = string
     })
     description = "details of admin account - username of hpcadmin is default"
 }
