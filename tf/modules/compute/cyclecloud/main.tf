@@ -41,6 +41,10 @@ data "azurerm_role_definition" "storage_acct_contributor" {
   name = "Storage Account Contributor"
 }
 
+data "azurerm_role_definition" "blob_data_reader" {
+  name = "Storage Blob Data Reader"
+}
+
 resource "azurerm_network_interface" "cycle_nic" {
   name                = "${var.name_prefix}-nic"
   location            = data.azurerm_virtual_network.vnet.location
@@ -103,19 +107,54 @@ resource "azurerm_virtual_machine_data_disk_attachment" "cc_disk_attachment" {
   caching            = "ReadWrite"
 }
 
-resource "azurerm_virtual_machine_extension" "vmext" {
-    name = "${var.name_prefix}-ext"
-    virtual_machine_id = azurerm_linux_virtual_machine.cycle_vm.id
-    publisher = "Microsoft.Azure.Extensions"
-    type = "CustomScript"
-    type_handler_version = "2.0"
+resource "azurerm_virtual_machine_run_command" "install_run_cmd" {
+  name                = "${var.name_prefix}-install"
+  location            = azurerm_linux_virtual_machine.cycle_vm.location
+  virtual_machine_id  = azurerm_linux_virtual_machine.cycle_vm.id
 
-    protected_settings = <<PROT
-    {
-        "script": "${base64encode(templatefile("${path.module}/templates/${var.operating_system}.tfpl", {cycle_version = var.cc_version }) )}"
-    }
-    PROT
-    depends_on = [ azurerm_virtual_machine_data_disk_attachment.cc_disk_attachment ]
+  source {
+    script = templatefile("${path.module}/templates/${var.operating_system}.tfpl", { cycle_version = var.cc_version })
+  }
+
+  depends_on = [azurerm_virtual_machine_data_disk_attachment.cc_disk_attachment]
+}
+
+# create a new vm extension that executes after the run command to configure cyclecloud
+resource "azurerm_virtual_machine_extension" "configure" {
+  name = "${var.name_prefix}-configure"
+  virtual_machine_id = azurerm_linux_virtual_machine.cycle_vm.id
+  publisher = "Microsoft.Azure.Extensions"
+  type = "CustomScript"
+  type_handler_version = "2.0"
+
+  protected_settings = <<PROT
+  {
+    "script": "${base64encode(templatefile("${path.module}/templates/configure.tfpl", {
+    cycle_admin = var.admin.username,
+    cycle_pw = var.admin.password,
+    cycle_pubkey = chomp(var.admin.public_key),
+    cycle_sa = var.locker.storage_acct_name,
+    cycle_identity = azurerm_user_assigned_identity.cluster_identity.id
+      }) )}"
+  }
+  PROT
+
+  depends_on = [ azurerm_virtual_machine_run_command.install_run_cmd ]
+}
+
+
+# create a user assigned identity
+resource "azurerm_user_assigned_identity" "cluster_identity" {
+  name                = "${var.name_prefix}-cluster-identity"
+  location            = data.azurerm_virtual_network.vnet.location
+  resource_group_name = data.azurerm_resource_group.cycle_rg.name
+}
+
+# Grant storage blob data reader access to the locker
+resource "azurerm_role_assignment" "locker_blob_reader" {
+  scope              = data.azurerm_storage_account.locker.id
+  role_definition_id = "${data.azurerm_subscription.primary.id}${data.azurerm_role_definition.blob_data_reader.id}"
+  principal_id       = azurerm_user_assigned_identity.cluster_identity.principal_id
 }
 
 # Grant Contributor access to CycleCloud VM to the target resource group
@@ -154,7 +193,19 @@ resource "azurerm_role_assignment" "locker_sa_ra" {
   principal_id       = azurerm_linux_virtual_machine.cycle_vm.identity[0].principal_id
 }
 
-resource "local_file" "config_script" {
-    content  = templatefile("${path.module}/templates/${var.operating_system}.tfpl", {cycle_version = var.cc_version})
-    filename = "${path.module}/configure.sh"
-}
+#resource "local_file" "install_script" {
+#    content  = templatefile("${path.module}/templates/${var.operating_system}.tfpl", {cycle_version = var.cc_version})
+#    filename = "${path.module}/install.sh"
+#}
+
+#resource "local_file" "configure_script" {
+#    content  = templatefile("${path.module}/templates/configure.tfpl", 
+#    {
+#        cycle_admin = var.admin.username,
+#        cycle_pw = var.admin.password,
+#        cycle_pubkey = var.admin.public_key,
+#        cycle_sa = var.locker.storage_acct_name
+#        cycle_identity = azurerm_user_assigned_identity.cluster_identity.id 
+#          })
+#    filename = "${path.module}/configure.sh"
+#}

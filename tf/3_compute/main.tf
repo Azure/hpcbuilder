@@ -48,6 +48,10 @@ data "azurerm_key_vault_secret" "ssh_key" {
   key_vault_id = data.azurerm_key_vault.kv.id
 }
 
+data "azurerm_key_vault_secret" "password" {
+  name = "${module.global.admin_username}-pw"
+  key_vault_id = data.azurerm_key_vault.kv.id
+}
 
 module "cyclecloud" {
   source = "../modules/compute/cyclecloud"
@@ -70,6 +74,7 @@ module "cyclecloud" {
   admin = {
     username = module.global.admin_username
     public_key = data.azurerm_key_vault_secret.ssh_key.value
+    password = data.azurerm_key_vault_secret.password.value
   }
 
   use_image_id = module.compute.cycle_image.type == "custom" ? true : false

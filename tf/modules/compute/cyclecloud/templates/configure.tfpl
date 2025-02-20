@@ -1,0 +1,328 @@
+#!/usr/bin/env python3
+# Prepare an Azure provider account for CycleCloud usage.
+import sys
+import os
+import argparse
+import json
+import re
+import random
+import platform
+from string import ascii_uppercase, ascii_lowercase, digits
+from subprocess import CalledProcessError, check_output
+from os import path, listdir, chdir, fdopen, remove
+from urllib.request import urlopen, Request
+from shutil import rmtree, copy2, move
+from tempfile import mkstemp, mkdtemp
+from time import sleep
+
+path_to_cyclecloud="/usr/local/bin/cyclecloud"
+
+tmpdir = mkdtemp()
+print("Creating temp directory {} for installing CycleCloud".format(tmpdir))
+cycle_root = "/opt/cycle_server"
+cs_cmd = cycle_root + "/cycle_server"
+
+
+def clean_up():
+    rmtree(tmpdir)
+
+def _catch_sys_error(cmd_list):
+    try:
+        output = check_output(cmd_list)
+        # print(cmd_list)
+        print(output)
+        return output
+    except CalledProcessError as e:
+        print("Error with cmd: %s" % e.cmd)
+        print("Output: %s" % e.output)
+        raise
+
+def create_user(username):
+    import pwd
+    try:
+        pwd.getpwnam(username)
+    except KeyError:
+        print('Creating user {}'.format(username))
+        _catch_sys_error(["useradd", "-m", "-d", "/home/{}".format(username), username])
+    _catch_sys_error(["chown", "-R", username + ":" + username, "/home/{}".format(username)])
+
+def create_keypair(username, public_key=None):
+    user_home = "/home/{}".format(username)
+    if not os.path.isdir(user_home+"/.ssh"):
+        _catch_sys_error(["mkdir", "-p", user_home+"/.ssh"])
+    public_key_file  = user_home+"/.ssh/id_rsa.pub"
+    if not os.path.exists(public_key_file):
+        if public_key:
+            with open(public_key_file, 'w') as pubkeyfile:
+                pubkeyfile.write(public_key)
+                pubkeyfile.write("\n")
+        else:
+            _catch_sys_error(["ssh-keygen", "-f", user_home+"/.ssh/id_rsa", "-N", ""])
+            with open(public_key_file, 'r') as pubkeyfile:
+                public_key = pubkeyfile.read()
+
+    authorized_key_file = user_home+"/.ssh/authorized_keys"
+    authorized_keys = ""
+    if os.path.exists(authorized_key_file):
+        with open(authorized_key_file, 'r') as authkeyfile:
+            authorized_keys = authkeyfile.read()
+    if public_key not in authorized_keys:
+        with open(authorized_key_file, 'w') as authkeyfile:
+            authkeyfile.write(public_key)
+            authkeyfile.write("\n")
+    _catch_sys_error(["chown", "-R", username + ":" + username, user_home])
+    return public_key
+
+def create_user_credential(username, public_key=None):
+    create_user(username)    
+    public_key = create_keypair(username, public_key)
+
+    credential_record = {
+        "PublicKey": public_key,
+        "AdType": "Credential",
+        "CredentialType": "PublicKey",
+        "Name": username + "/public"
+    }
+    credential_data_file = os.path.join(tmpdir, "credential.json")
+    print("Creating cred file: {}".format(credential_data_file))
+    with open(credential_data_file, 'w') as fp:
+        json.dump(credential_record, fp)
+
+    config_path = os.path.join(cycle_root, "config/data/")
+    print("Copying config to {}".format(config_path))
+    copy2(credential_data_file, config_path)
+
+
+def generate_password_string():
+    random_pw_chars = ([random.choice(ascii_lowercase) for _ in range(20)] +
+                        [random.choice(ascii_uppercase) for _ in range(20)] +
+                        [random.choice(digits) for _ in range(10)])
+    random.shuffle(random_pw_chars)
+    return ''.join(random_pw_chars)
+
+
+def cyclecloud_account_setup(vm_metadata, use_managed_identity, tenant_id, application_id, application_secret,
+                             admin_user, azure_cloud, accept_terms, password, storageAccount, storage_managed_identity):
+
+    print("Setting up azure account in CycleCloud and initializing cyclecloud CLI")
+
+    accept_terms = True
+
+    subscription_id = vm_metadata["compute"]["subscriptionId"]
+    location = vm_metadata["compute"]["location"]
+    resource_group = vm_metadata["compute"]["resourceGroupName"]
+
+    random_suffix = ''.join(random.SystemRandom().choice(
+        ascii_lowercase) for _ in range(14))
+
+    cyclecloud_admin_pw = ""
+    if password:
+        print('Password specified, using it as the admin password')
+        cyclecloud_admin_pw = password
+    else:
+        cyclecloud_admin_pw = generate_password_string()
+
+    if storageAccount:
+        print('Storage account specified, using it as the default locker')
+        storage_account_name = storageAccount
+    else:
+        storage_account_name = 'cyclecloud{}'.format(random_suffix)
+
+    azure_data = {
+        "Environment": azure_cloud,
+        "AzureRMUseManagedIdentity": use_managed_identity,
+        "AzureResourceGroup": resource_group,
+        "AzureRMApplicationId": application_id,
+        "AzureRMApplicationSecret": application_secret,
+        "AzureRMSubscriptionId": subscription_id,
+        "AzureRMTenantId": tenant_id,
+        "DefaultAccount": True,
+        "Location": location,
+        "Name": "azure",
+        "Provider": "azure",
+        "ProviderId": subscription_id,
+        "RMStorageAccount": storage_account_name,
+        "RMStorageContainer": "cyclecloud",
+    }
+    if use_managed_identity:
+        azure_data["LockerIdentity"] = storage_managed_identity
+        azure_data["LockerAuthMode"] = "ManagedIdentity"
+    else:
+        azure_data["LockerAuthMode"] = "SharedAccessKey"
+
+
+    app_setting_installation = {
+        "AdType": "Application.Setting",
+        "Name": "cycleserver.installation.complete",
+        "Value": True
+    }
+    initial_user = {
+        "AdType": "Application.Setting",
+        "Name": "cycleserver.installation.initial_user",
+        "Value": admin_user
+    }
+    account_data = [
+        initial_user,
+        app_setting_installation
+    ]
+
+    if accept_terms:
+        # Terms accepted, auto-create login user account as well
+        login_user = {
+            "AdType": "AuthenticatedUser",
+            "Name": admin_user,
+            "RawPassword": cyclecloud_admin_pw,
+            "Superuser": True
+        }
+        account_data.append(login_user)
+
+    account_data_file = tmpdir + "/account_data.json"
+    azure_data_file = tmpdir + "/azure_data.json"
+
+    with open(account_data_file, 'w') as fp:
+        json.dump(account_data, fp)
+
+    with open(azure_data_file, 'w') as fp:
+        json.dump(azure_data, fp)
+
+    copy2(account_data_file, cycle_root + "/config/data/")
+    # Wait for the data to be imported
+    sleep(5)
+
+    initialize_cyclecloud_cli(admin_user, cyclecloud_admin_pw)
+
+    output =  _catch_sys_error([path_to_cyclecloud, "account", "show", "azure"])
+    if 'Credentials: azure' in str(output):
+        print("Account \"azure\" already exists.   Skipping account setup...")
+    else:
+        # wait until Managed Identity is ready for use before creating the Account
+        if use_managed_identity:
+            get_vm_managed_identity()
+
+        # create the cloud provide account
+        print("Registering Azure subscription in CycleCloud")
+        _catch_sys_error([path_to_cyclecloud, "account",
+                        "create", "-f", azure_data_file])
+
+# Read a property from the cycle_server.properties file
+def read_cycle_server_property(property):
+    file_path = cycle_root + "/config/cycle_server.properties"
+    with open(file_path, 'r') as file:
+        for line in file:
+            if line.startswith(property):
+                return line.split('=')[1].strip()
+
+def initialize_cyclecloud_cli(admin_user, cyclecloud_admin_pw):
+    print("Setting up azure account in CycleCloud and initializing cyclecloud CLI")
+
+    # Extract the webServerContextPath configuration
+    webServerContextPath = read_cycle_server_property('webServerContextPath')
+    if webServerContextPath == '/':
+        webServerContextPath = ''
+    print(f'webServerContextPath: {webServerContextPath}')
+    
+    password_flag = ("--password=%s" % cyclecloud_admin_pw)
+    print("Initializing cyclecloud CLI")
+    _catch_sys_error([path_to_cyclecloud, "initialize", "--loglevel=debug", "--batch",
+                      "--url=https://localhost:9443%s"% webServerContextPath, "--verify-ssl=false", 
+                      "--username=%s" % admin_user, password_flag])
+
+def get_vm_metadata():
+    metadata_url = "http://169.254.169.254/metadata/instance?api-version=2019-08-15"
+    metadata_req = Request(metadata_url, headers={"Metadata": True})
+
+    for _ in range(30):
+        print("Fetching metadata")
+        metadata_response = urlopen(metadata_req, timeout=2)
+
+        try:
+            return json.load(metadata_response)
+        except ValueError as e:
+            print("Failed to get metadata %s" % e)
+            print("    Retrying")
+            sleep(2)
+            continue
+        except:
+            print("Unable to obtain metadata after 30 tries")
+            raise
+
+def get_vm_managed_identity():
+    # Managed Identity may  not be available immediately at VM startup...
+    # Test/Pause/Retry to see if it gets assigned
+    metadata_url = ('http://169.254.169.254/metadata/identity/oauth2/token'
+                    '?api-version=2018-02-01'
+                    '&resource=https://management.azure.com/')
+    metadata_req = Request(metadata_url, headers={"Metadata": True})
+
+    for _ in range(30):
+        print("Fetching managed identity")
+        metadata_response = urlopen(metadata_req, timeout=2)
+
+        try:
+            return json.load(metadata_response)
+        except ValueError as e:
+            print("Failed to get managed identity %s" % e)
+            print("    Retrying")
+            sleep(10)
+            continue
+        except:
+            print("Unable to obtain managed identity after 30 tries")
+            raise    
+
+def main():
+
+    vm_metadata = get_vm_metadata()
+
+    #if args.resourceGroup:
+    #    print("CycleCloud created in resource group: %s" % vm_metadata["compute"]["resourceGroupName"])
+    #    print("Cluster resources will be created in resource group: %s" %  args.resourceGroup)
+    #    vm_metadata["compute"]["resourceGroupName"] = args.resourceGroup
+
+    # Retry await_startup in case it takes much longer than expected 
+    # (this is common in local testing with limited compute resources)
+    max_tries = 5
+    started = False
+    while not started:
+        try:
+            max_tries -= 1
+            _catch_sys_error([cs_cmd, "await_startup"])
+            started = True
+        except:
+            if max_tries >  0:
+                # Wait 30s seconds before retrying
+                _catch_sys_error([sleep, "30"])
+                print("Retrying...")
+            else:
+                print("CycleServer is not started")
+                raise 
+
+    azEnvironment = vm_metadata["compute"]["azEnvironment"]
+    azEnvironment = azEnvironment.lower()
+    print("azEnvironment=%s" % azEnvironment)
+
+    if azEnvironment == 'azurepubliccloud':
+        azureSovereignCloud = 'public'
+    elif azEnvironment == 'azureusgovernmentcloud':
+        azureSovereignCloud = 'usgov'
+    elif azEnvironment == 'azurechinacloud':
+        azureSovereignCloud = 'china'
+    elif azEnvironment == 'azuregermancloud':
+        azureSovereignCloud = 'germany'
+    else:
+        azureSovereignCloud = 'public'
+
+    cyclecloud_account_setup(vm_metadata, True, None, None,
+                             None, '${cycle_admin}', azureSovereignCloud,
+                             True, '${cycle_pw}', '${cycle_sa}', '${cycle_identity}')
+
+    #  Create user requires root privileges
+    create_user_credential('${cycle_admin}', '${cycle_pubkey}')
+
+    clean_up()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except:
+        sys.exit("Deployment failed...")
