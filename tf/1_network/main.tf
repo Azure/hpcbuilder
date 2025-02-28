@@ -48,6 +48,17 @@ resource "azurerm_subnet" "vnet_subnet" {
   virtual_network_name = azurerm_virtual_network.vnet[0].name
   resource_group_name  = azurerm_virtual_network.vnet[0].resource_group_name
   service_endpoints = (each.value.key == "infra" || each.value.key == "compute") ? ["Microsoft.Storage"] : []
+
+  dynamic "delegation" {
+    for_each = each.value.key == "anf" ? [1] : []
+    content {
+      name = "delegation"
+      service_delegation {
+        name    = "Microsoft.Netapp/volumes"
+        actions = ["Microsoft.Network/networkinterfaces/*", "Microsoft.Network/virtualNetworks/subnets/join/action"]
+      }
+    }
+  }
 }
 
 module vpn {

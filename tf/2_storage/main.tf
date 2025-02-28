@@ -63,5 +63,23 @@ resource "azurerm_storage_account_network_rules" "acls" {
   depends_on = [ azurerm_storage_account.storage ]
 }
 
+module "anf" {
+  count = module.storage.create_anf && module.network.anf_subnet_name != null ? 1 : 0
+  source = "../modules/storage/anf"
+  name_prefix = module.storage.anf_prefix
+  resource_group_name = module.global.core_rg_name
+  ntap_pool_service_level = module.storage.ntap_pool_service_level
+  ntap_pool_size_in_tb = module.storage.ntap_pool_size_in_tb
+  ntap_volume_name = module.storage.ntap_volume_name
+  ntap_volume_path = module.storage.ntap_volume_path
+  ntap_volume_size_in_gb = module.storage.ntap_volume_size_in_gb
+  
+  vnet = {
+    name = module.network.vnet_name
+    rg = module.network.vnet_rg
+    subnet = module.network.anf_subnet_name
+  }
+  }
+
 
 

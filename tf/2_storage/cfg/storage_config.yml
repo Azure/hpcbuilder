@@ -1,2 +1,11 @@
 cyclecloud_locker:
   name: hpcbuilderdemolocker
+
+anf_storage:
+  create: 0
+  name_prefix: anf
+  ntap_pool_service_level: Premium
+  ntap_pool_size_in_tb: 4
+  ntap_volume_name: hpcbuilder-ntap-volume
+  ntap_volume_path: shared
+  ntap_volume_size_in_gb: 1024
