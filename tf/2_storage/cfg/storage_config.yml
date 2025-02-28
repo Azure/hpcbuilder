@@ -2,7 +2,7 @@ cyclecloud_locker:
   name: hpcbuilderdemolocker
 
 anf_storage:
-  create: 0
+  create: 1
   name_prefix: anf
   ntap_pool_service_level: Premium
   ntap_pool_size_in_tb: 4
