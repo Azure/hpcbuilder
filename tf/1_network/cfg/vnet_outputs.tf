@@ -18,6 +18,11 @@ output "compute_subnet_name" {
   value       = local.compute_subnet_name
 }
 
+output "anf_subnet_name" {
+  description = "Name of the anf subnet"
+  value       = local.anf_subnet_name
+}
+
 
 output "create_vnet" {
   description = "boolean to create the vnet"
@@ -44,3 +49,4 @@ output "subnets" {
   description = "Subnets in the vnet"
   value       = local.subnets
 }
+

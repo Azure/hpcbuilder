@@ -10,8 +10,11 @@ vnet:
     infra:
       address_space: 10.2.2.0/25
       name: infra
-    #gateway: #optional subnet, but required to create the VPN Gateway
-    #  address_space: 10.2.2.128/27
+    anf:
+      address_space: 10.2.3.0/24	
+      name: anf
+#    gateway: #optional subnet, but required to create the VPN Gateway
+#      address_space: 10.2.2.128/27
 
 # This should only be deployed for testing purposes. For production use cases, an ALZ should be in place.
 vpn_gateway:
