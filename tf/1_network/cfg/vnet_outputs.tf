@@ -23,6 +23,10 @@ output "anf_subnet_name" {
   value       = local.anf_subnet_name
 }
 
+output "amlfs_subnet_name" {
+  description = "Name of the amlfs subnet"
+  value       = local.amfls_subnet_name
+}
 
 output "create_vnet" {
   description = "boolean to create the vnet"

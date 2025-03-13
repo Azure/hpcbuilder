@@ -22,11 +22,23 @@ output "ntap_volume_path" {
   description = "ntap volume path"
   value = local.ntap_volume_path
 }
+
 output "ntap_volume_size_in_gb" {
   description = "ntap volume size in gb"
   value = local.ntap_volume_size_in_gb
 }
+
 output "create_anf" {
   description = "create anf"
   value = local.create_anf
+}
+
+output "amlfs" {
+  description = "amlfs"
+  value = local.amlfs
+}
+
+output "use_locker_for_hsm" {
+  description = "variable to determine if locker is used for hsm"
+  value = ( local.amlfs.create && local.amlfs.enable_hsm && (local.amlfs.hsm_sa == local.storage_acct_name ) )
 }

@@ -47,7 +47,7 @@ resource "azurerm_subnet" "vnet_subnet" {
   address_prefixes      = [each.value.cidr]
   virtual_network_name = azurerm_virtual_network.vnet[0].name
   resource_group_name  = azurerm_virtual_network.vnet[0].resource_group_name
-  service_endpoints = (each.value.key == "infra" || each.value.key == "compute") ? ["Microsoft.Storage"] : []
+  service_endpoints = contains(["infra", "compute", "amlfs"], each.value.key) ? ["Microsoft.Storage"] : []
 
   dynamic "delegation" {
     for_each = each.value.key == "anf" ? [1] : []

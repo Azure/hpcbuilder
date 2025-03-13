@@ -25,26 +25,6 @@ data "azurerm_storage_account" "locker" {
   resource_group_name = var.locker.rg
 }
 
-data "azurerm_role_definition" "contributor" {
-  name = "Contributor"
-}
-
-data "azurerm_role_definition" "reader" {
-  name = "Reader"
-}
-
-data "azurerm_role_definition" "blob_data_contributor" {
-  name = "Storage Blob Data Contributor"
-}
-
-data "azurerm_role_definition" "storage_acct_contributor" {
-  name = "Storage Account Contributor"
-}
-
-data "azurerm_role_definition" "blob_data_reader" {
-  name = "Storage Blob Data Reader"
-}
-
 resource "azurerm_network_interface" "cycle_nic" {
   name                = "${var.name_prefix}-nic"
   location            = data.azurerm_virtual_network.vnet.location
@@ -153,14 +133,14 @@ resource "azurerm_user_assigned_identity" "cluster_identity" {
 # Grant storage blob data reader access to the locker
 resource "azurerm_role_assignment" "locker_blob_reader" {
   scope              = data.azurerm_storage_account.locker.id
-  role_definition_id = "${data.azurerm_subscription.primary.id}${data.azurerm_role_definition.blob_data_reader.id}"
+  role_definition_name = "Storage Blob Data Reader"
   principal_id       = azurerm_user_assigned_identity.cluster_identity.principal_id
 }
 
 # Grant Contributor access to CycleCloud VM to the target resource group
 resource "azurerm_role_assignment" "cycle_rg_ra" {
     scope              = data.azurerm_resource_group.cycle_rg.id
-    role_definition_id = "${data.azurerm_subscription.primary.id}${data.azurerm_role_definition.contributor.id}"
+    role_definition_name = "Contributor"
     principal_id       = azurerm_linux_virtual_machine.cycle_vm.identity[0].principal_id
 }
 
@@ -168,28 +148,28 @@ resource "azurerm_role_assignment" "cycle_rg_ra" {
 resource "azurerm_role_assignment" "vnet_rg_ra" {
   count = data.azurerm_resource_group.vnet_rg.name != data.azurerm_resource_group.cycle_rg.name ? 1 : 0
   scope              = data.azurerm_resource_group.vnet_rg.id
-  role_definition_id = "${data.azurerm_subscription.primary.id}${data.azurerm_role_definition.contributor.id}"
+  role_definition_name = "Contributor"
   principal_id       = azurerm_linux_virtual_machine.cycle_vm.identity[0].principal_id
 }
 
 # Grant Subscription Reader access to cyclecloud vm
 resource "azurerm_role_assignment" "cycle_sub_ra" {
   scope              = data.azurerm_subscription.primary.id
-  role_definition_id = "${data.azurerm_subscription.primary.id}${data.azurerm_role_definition.reader.id}"
+  role_definition_name = "Reader"
   principal_id       = azurerm_linux_virtual_machine.cycle_vm.identity[0].principal_id
 }
 
 # Grant Storage Blob Data Contributor access to the storage account
 resource "azurerm_role_assignment" "locker_blob_ra" {
   scope              = data.azurerm_storage_account.locker.id
-  role_definition_id = "${data.azurerm_subscription.primary.id}${data.azurerm_role_definition.blob_data_contributor.id}"
+  role_definition_name = "Storage Blob Data Contributor"
   principal_id       = azurerm_linux_virtual_machine.cycle_vm.identity[0].principal_id
 }
 
 # Grant Storage Account Contributor access to the storage account
 resource "azurerm_role_assignment" "locker_sa_ra" {
   scope              = data.azurerm_storage_account.locker.id
-  role_definition_id = "${data.azurerm_subscription.primary.id}${data.azurerm_role_definition.storage_acct_contributor.id}"
+  role_definition_name = "Storage Account Contributor"
   principal_id       = azurerm_linux_virtual_machine.cycle_vm.identity[0].principal_id
 }
 

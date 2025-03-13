@@ -22,6 +22,7 @@ locals {
   infra_subnet_name = local.config_yml["vnet"]["subnets"]["infra"]["name"]
   compute_subnet_name = local.config_yml["vnet"]["subnets"]["compute"]["name"]
   anf_subnet_name = try(local.config_yml["vnet"]["subnets"]["anf"]["name"], null)
+  amfls_subnet_name = try(local.config_yml["vnet"]["subnets"]["amlfs"]["name"], null)
 
   create_vpn = try( local.config_yml["vpn_gateway"]["create"] == 1 ? true : false, false ) &&  try( local.subnets_config["gateway"] != null ? true : false, false)
   vpn_prefix = local.create_vpn ? local.config_yml["vpn_gateway"]["prefix"] : null

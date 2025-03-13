@@ -2,10 +2,30 @@ cyclecloud_locker:
   name: hpcbuilderdemolocker
 
 anf_storage:
-  create: 1
+  create: 0
   name_prefix: anf
   ntap_pool_service_level: Premium
   ntap_pool_size_in_tb: 4
   ntap_volume_name: hpcbuilder-ntap-volume
   ntap_volume_path: shared
   ntap_volume_size_in_gb: 1024
+
+amlfs_storage:
+  create: 0
+  name_prefix: amlfs
+  sku: AMLFS-Durable-Premium-500
+  size_in_tb: 16
+  zone: ["1"]
+  maintenance:
+    day: "Saturday"
+    time: "20:00"
+  hsm_storage:
+    enable: 1
+    import_path: "/"
+    data_container: amlfs-data
+    logging_container: amlfs-logs
+    hsm_storage_account:
+      name: hpcbuilderdemolocker
+      #resource_group: hsm_storage_account_rg # Optional, only required if a separate existing storage account is used
+      create_containers: 1
+
