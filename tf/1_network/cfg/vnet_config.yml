@@ -10,9 +10,12 @@ vnet:
     infra:
       address_space: 10.2.2.0/25
       name: infra
-    anf:
-      address_space: 10.2.3.0/24	
-      name: anf
+#    anf: #optional subnet, but required to create the ANF
+#      address_space: 10.2.3.0/24	
+#      name: anf
+#    amlfs: #optional subnet, but required to create the AMLFS
+#      address_space: 10.2.4.0/23
+#      name: amlfs
 #    gateway: #optional subnet, but required to create the VPN Gateway
 #      address_space: 10.2.2.128/27
 
