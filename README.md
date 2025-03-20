@@ -19,7 +19,7 @@ To get started with HPCBuilder, you can clone the repository and follow the inst
 1. Clone the repository:
    ```bash
    git clone https://github.com/Azure/hpcbuilder.git
-   cd hpcbuilder/<step> # Follow README of each step for deployment
+   cd hpcbuilder/tf/<step> # Follow README of each step for deployment
 
 ## Contributing
 
