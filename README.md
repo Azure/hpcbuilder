@@ -1,14 +1,25 @@
-# Project
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+## Overview
 
-As the maintainer of this project, please make a few updates:
+The primary goal of this project is to offer an example for building HPC infrastructure with Terraform. HPCBuilder emphasizes the essential components needed to build an HPC environment and the proper sequence for their creation.  
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+## Features
+
+- **Terraform Modules**: Examples of reusable infrastructure as code (IaC) modules for deploying HPC resources.
+- **Security Management**: Example modules for creating and managing secure passwords and SSH keys using Azure Key Vault.
+- **Customization**: Example of flexible configuration options to tailor the HPC environment to specific requirements.
+
+Most projects typically deploy all infrastructure at once, but this project is designed differently. Each folder represents a step to create a required component, emphasizing a more modular and step-by-step approach to infrastructure deployment. This approach is mainly to encourage learning and to provide flexibility in testing individual components. 
+
+
+## Getting Started
+
+To get started with HPCBuilder, you can clone the repository and follow the instructions in the provided `README.md` files for each step. Below is a general guide to help you begin:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Azure/hpcbuilder.git
+   cd hpcbuilder/<step> # Follow README of each step for deployment
 
 ## Contributing
 
