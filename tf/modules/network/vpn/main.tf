@@ -25,7 +25,8 @@ resource "azurerm_public_ip" "vpn_public_ip" {
   name                = "${var.name_prefix}-vpn-pip"
   resource_group_name = data.azurerm_resource_group.rg.name
   location            = data.azurerm_resource_group.rg.location
-  allocation_method   = "Dynamic" 
+  allocation_method   = "Static"
+  sku                 = "Standard" 
 }
 
 resource "azurerm_virtual_network_gateway" "vpn" {
