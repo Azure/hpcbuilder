@@ -16,8 +16,6 @@ if [ $# -lt 2 ]; then
   exit 1
 fi
 
-PACKER_OPTIONS="-timestamp-ui"
-
 while (( "$#" )); do
   case "${1}" in
     -i|--image)
@@ -85,9 +83,6 @@ if [ ! -f "$SSH_PRIVATE_KEY" ]; then
     exit 1
 fi
 
-
-logfile="${PACKER_FILE%.*}.log"
-
 IMG_DEF_ID=$(az sig image-definition list -r $GALLERY_NAME -g $RG_NAME --query "[?name=='$IMAGE_NAME'].id" -o tsv)
 
 if [ "$IMG_DEF_ID" == "" ]; then
@@ -96,13 +91,7 @@ if [ "$IMG_DEF_ID" == "" ]; then
     az sig image-definition create -r $GALLERY_NAME -i $IMAGE_NAME -g $RG_NAME \
                 -f $OFFER --os-type $OS_TYPE -p $PUBLISHER -s $SKU --hyper-v-generation $HYPERVISOR \
                 --features "SecurityType=$SECURITY IsAcceleratedNetworkSupported=true" 
-
-    IMG_DEF_ID=$(az sig image-definition list -r $GALLERY_NAME -g $RG_NAME --query "[?name=='$IMAGE_NAME'].id" -o tsv)
 fi
-
-
-
-
 
 # Write variables to Packer variables file
 cat <<EOF > $PACKER_VARS_FILE
