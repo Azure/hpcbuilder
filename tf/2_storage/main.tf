@@ -15,6 +15,8 @@ terraform {
 
 provider "azurerm" {
   skip_provider_registration = true
+  storage_use_azuread = true
+
   features {}
 }
 
@@ -59,6 +61,15 @@ resource azurerm_storage_account "storage" {
   location                 = data.azurerm_resource_group.core_rg.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
+}
+
+resource "azurerm_shared_image_gallery" "gallery" {
+  count = module.storage.gallery.create ? 1 : 0
+  name                = module.storage.gallery.name
+  resource_group_name = data.azurerm_resource_group.core_rg.name
+  location            = data.azurerm_resource_group.core_rg.location
+  description         = "Image Gallery for HPC Infrastructure"
+  
 }
 
 module "anf" {

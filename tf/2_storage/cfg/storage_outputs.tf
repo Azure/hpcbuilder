@@ -38,6 +38,11 @@ output "amlfs" {
   value = local.amlfs
 }
 
+output "gallery" {
+  description = "gallery"
+  value = local.gallery
+}
+
 output "use_locker_for_hsm" {
   description = "variable to determine if locker is used for hsm"
   value = ( local.amlfs.create && local.amlfs.enable_hsm && (local.amlfs.hsm_sa == local.storage_acct_name ) )

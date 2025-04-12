@@ -1,0 +1,9 @@
+images:
+  - name: custom-ubuntu-hpc
+    publisher: hpcbuilder
+    offer: ubuntu
+    sku: 22_04-lts-gen2
+    os_type: Linux
+    hypervisor: V2
+    security: Standard
+    version: 22.04

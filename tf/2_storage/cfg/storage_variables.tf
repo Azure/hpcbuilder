@@ -8,6 +8,13 @@ locals {
   storage_acct_name = local.config_yml["cyclecloud_locker"]["name"]
   storage_acct_rg = local.global_config_yml["core-rg"]["name"]
 
+  create_gallery = try(local.config_yml["image_gallery"]["create"] == 1 ? true : false, false)
+
+  gallery = {
+    create = local.create_gallery
+    name   = try(local.config_yml["image_gallery"]["name"], "hpcgallery" )
+  }
+
   create_anf = local.config_yml["anf_storage"]["create"] == 1 ? true : false
   create_amlfs = try(local.config_yml["amlfs_storage"]["create"] == 1 ? true : false, false)
   enable_hsm = local.create_amlfs && local.config_yml["amlfs_storage"]["hsm_storage"]["enable"] == 1 ? true : false
