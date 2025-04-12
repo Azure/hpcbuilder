@@ -65,13 +65,6 @@ OS_TYPE=$(yq eval ".images[] | select(.name == \"$IMAGE_NAME\") | .os_type" $PAC
 HYPERVISOR=$(yq eval ".images[] | select(.name == \"$IMAGE_NAME\") | .hypervisor" $PACKER_IMG_DEFS)
 SECURITY=$(yq eval ".images[] | select(.name == \"$IMAGE_NAME\") | .security" $PACKER_IMG_DEFS)
 IMAGE_VERSION=$(date -u +"%Y.%m%d.%H%M")
-# Retrieve the Image ID
-#IMAGE_ID=$(az image list -g $RG_NAME --query "[?name=='$IMAGE_NAME'].id" -o tsv)
-
-#if [ "$IMAGE_ID" != "" ] && [[ ! "$PACKER_OPTIONS" =~ "-force" ]]; then
-#    echo "Error: Image ID already exists for image name $IMAGE_NAME in resource group $RG_NAME. Use -f to force rebuild."
-#    exit 1
-#fi
 
 # use an azure cli command to get the ssh key secret from the key vault
 echo "az keyvault secret show --name "$SSH_USER-ssh-private-key" --vault-name "$VAULT" --query 'value' -o tsv"
