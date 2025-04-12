@@ -1,6 +1,10 @@
 cyclecloud_locker:
   name: hpcbuilderdemolocker
 
+image_gallery: 
+  create: 1
+  name: hpcimggallery
+
 anf_storage:
   create: 0
   name_prefix: anf

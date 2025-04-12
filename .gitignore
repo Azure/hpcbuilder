@@ -1,3 +1,6 @@
 # Terraform
 .terraform*
 *.tfstate*
+*.log
+*.auto.pkrvars.hcl
+packer_key
